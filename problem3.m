@@ -47,19 +47,23 @@ if ~load_ica
     fprintf('ICA computation finished in %.2f seconds.\n', ica_time);
     EEG_ica = iclabel(EEG_ica);
 
-    % Find components NOT classified as 'Brain' with > 80% probability and remove them
-    brain_class_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Brain'));
+    % Find components noise components with > 70% probability and remove them
     muscle_class_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Muscle'));
     eye_class_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Eye'));
+    channel_noise_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Channel Noise'));
+    line_noise_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Line Noise'));
+    brain_idx = find(strcmp(EEG_ica.etc.ic_classification.ICLabel.classes, 'Brain'));
+
+    noise_components = find( ...
+        EEG_ica.etc.ic_classification.ICLabel.classifications(:, muscle_class_idx) > 0.7 | ...
+        EEG_ica.etc.ic_classification.ICLabel.classifications(:, eye_class_idx) > 0.7 | ...
+        EEG_ica.etc.ic_classification.ICLabel.classifications(:, channel_noise_idx) > 0.7 | ...
+        EEG_ica.etc.ic_classification.ICLabel.classifications(:, line_noise_idx) > 0.7 | ...
+        EEG_ica.etc.ic_classification.ICLabel.classifications(:, brain_idx) < 0.01 ...
+    );
     
-    non_brain_components = find( ...
-        EEG_ica.etc.ic_classification.ICLabel.classifications(:, brain_class_idx) < 0.1 | ...
-        EEG_ica.etc.ic_classification.ICLabel.classifications(:, muscle_class_idx) > 0.8 | ...
-        EEG_ica.etc.ic_classification.ICLabel.classifications(:, eye_class_idx) > 0.8 ...
-        );
-    
-    fprintf('Found %d artifactual components to remove.\n', length(non_brain_components));
-    EEG_ica = pop_subcomp(EEG_ica, non_brain_components, 0);
+    fprintf('Found %d artifactual components to remove.\n', length(noise_components));
+    EEG_ica = pop_subcomp(EEG_ica, noise_components, 0);
 else
     fprintf('Loading precomputed ICA results from disk...\n');
     [dataPath, dataName, ~] = fileparts(dataset1_path);
@@ -104,19 +108,23 @@ if ~load_ica_filtered
     fprintf('ICA computation finished in %.2f seconds.\n', ica_filtered_time);
     EEG_filtered_ica = iclabel(EEG_filtered_ica);
 
-    % Find components NOT classified as 'Brain' with > 80% probability and remove them
-    brain_class_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Brain'));
+    % Find components noise components with > 70% probability and remove them
     muscle_class_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Muscle'));
     eye_class_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Eye'));
+    channel_noise_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Channel Noise'));
+    line_noise_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Line Noise'));
+    brain_idx = find(strcmp(EEG_filtered_ica.etc.ic_classification.ICLabel.classes, 'Brain'));
 
-    non_brain_components = find( ...
-        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, brain_class_idx) < 0.1 | ...
-        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, muscle_class_idx) > 0.8 | ...
-        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, eye_class_idx) > 0.8 ...
-        );
+    noise_components = find( ...
+        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, muscle_class_idx) > 0.7 | ...
+        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, eye_class_idx) > 0.7 | ...
+        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, channel_noise_idx) > 0.7 | ...
+        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, line_noise_idx) > 0.7 | ...
+        EEG_filtered_ica.etc.ic_classification.ICLabel.classifications(:, brain_idx) < 0.01 ...
+    );
 
-    fprintf('Found %d artifactual components to remove.\n', length(non_brain_components));
-    EEG_filtered_ica = pop_subcomp(EEG_filtered_ica, non_brain_components, 0);
+    fprintf('Found %d artifactual components to remove.\n', length(noise_components));
+    EEG_filtered_ica = pop_subcomp(EEG_filtered_ica, noise_components, 0);
 else
     fprintf('Loading precomputed filtered + ICA results from disk...\n');
     [dataPath, dataName, ~] = fileparts(dataset1_path);
